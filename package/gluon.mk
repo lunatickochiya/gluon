@@ -4,7 +4,7 @@ PKG_FILE_DEPENDS += $(GLUON_MK)
 PKG_BUILD_DEPENDS += luasrcdiet/host
 
 ifneq ($(wildcard ./luasrc/.),)
-	PKG_CONFIG_DEPENDS += CONFIG_GLUON_MINIFY
+  PKG_CONFIG_DEPENDS += CONFIG_GLUON_MINIFY
 endif
 
 ifneq ($(wildcard ./src/respondd.c),)
@@ -21,7 +21,8 @@ shell-verbatim = $(call shell-unescape,$(call shell-escape,$(1)))
 
 
 define GluonCheckSite
-[ -z "$$IPKG_INSTROOT" ] || "${TOPDIR}/staging_dir/hostpkg/bin/lua" "${TOPDIR}/../scripts/check_site.lua" <<'END__GLUON__CHECK__SITE'
+[ -z "$$STAGING_DIR_HOSTPKG" ] || PATH="$$STAGING_DIR_HOSTPKG/bin:$$PATH"
+lua "$$IPKG_INSTROOT/lib/gluon/check-site.lua" <<'END__GLUON__CHECK__SITE'
 $(call shell-verbatim,cat '$(1)')
 END__GLUON__CHECK__SITE
 endef

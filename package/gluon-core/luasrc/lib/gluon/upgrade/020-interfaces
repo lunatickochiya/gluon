@@ -20,32 +20,37 @@ local network_data = (board_data or {}).network
 
 local function iface_exists(ifaces)
 	if not ifaces then return nil end
+	local ifnames = table.concat(ifaces, ' ')
 
-	for iface in ifaces:gmatch('%S+') do
+	for _, iface in ipairs(ifaces) do
 		if unistd.access('/sys/class/net/' .. iface:gsub('%..*$', '')) then
-			return ifaces
+			return ifnames
 		end
 	end
 end
 
+local lan_data = network_data.lan or {}
+local wan_data = network_data.wan or {}
 
-local lan_ifname = iface_exists((network_data.lan or {}).ifname)
-local wan_ifname = iface_exists((network_data.wan or {}).ifname)
+local lan_interfaces = lan_data.ports
+local wan_interfaces = wan_data.ports
 
-if platform.match('ar71xx', 'generic', {
-	'cpe210',
-	'cpe510',
-	'wbs210',
-	'wbs510',
-	'airgateway',
-	'nanostation-m',
-	'nanostation-m-xw',
-	'unifi-outdoor-plus',
-	'uap-pro',
-	'unifiac-pro',
-}) then
-	lan_ifname, wan_ifname = wan_ifname, lan_ifname
-elseif platform.match('lantiq') then
+-- In case we have a single port for either WAN or LAN,
+-- add it to the respective empty table, as devices and
+-- ports is XOR in board.json
+
+if lan_data.device ~= nil then
+	lan_interfaces = {lan_data.device}
+end
+
+if wan_data.device ~= nil then
+	wan_interfaces = {wan_data.device}
+end
+
+local lan_ifname = iface_exists(lan_interfaces)
+local wan_ifname = iface_exists(wan_interfaces)
+
+if platform.match('lantiq') then
 	local switch_data = board_data.switch or {}
 	local switch0_data = switch_data.switch0 or {}
 	local roles_data = switch0_data.roles or {}
@@ -72,5 +77,10 @@ end
 
 uci:delete('network', 'lan')
 uci:delete('network', 'wan')
+
+uci:foreach('network', 'device', function(dev)
+	-- Delete all default OpenWrt network device sections.
+	uci:delete('network', dev['.name'])
+end)
 
 uci:save('network')
